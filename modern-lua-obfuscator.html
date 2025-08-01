@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LuaShield - Advanced Code Obfuscator</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #f59e0b;
+            --background: #0f0f23;
+            --surface: #1a1a3e;
+            --surface-light: #2d2d5f;
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --accent: #10b981;
+            --error: #ef4444;
+            --success: #22c55e;
+            --border: rgba(255, 255, 255, 0.1);
+            --glass: rgba(255, 255, 255, 0.05);
+            --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--background) 0%, #1a1a3e 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(245, 158, 11, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+            z-index: -1;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(1deg); }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            backdrop-filter: blur(20px);
+            background: rgba(15, 15, 35, 0.8);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            animation: slideUp 0.8s ease-out;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo::before {
+            content: '🛡️';
+            font-size: 1.2rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+            transform: translateY(-2px);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 8rem 2rem 4rem;
+            animation: slideUp 1s ease-out 0.2s both;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .obfuscator-card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 2.5rem;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+            animation: slideUp 1s ease-out 0.4s both;
+        }
+
+        .obfuscator-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+        }
+
+        .card-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .card-header h2 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-header p {
+            color: var(--text-secondary);
+        }
+
+        .input-method-tabs {
+            margin-bottom: 2rem;
+        }
+
+        .tab-buttons {
+            display: flex;
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 4px;
+            gap: 4px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+        }
+
+        .tab-btn:hover:not(.active) {
+            background: var(--surface-light);
+            color: var(--text-primary);
+        }
+
+        .input-content {
+            position: relative;
+        }
+
+        .input-section {
+            display: none;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        .input-section.active {
+            display: block;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .file-upload {
+            position: relative;
+            border: 2px dashed var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: var(--glass);
+        }
+
+        .file-upload:hover, .file-upload.drag-over {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .file-upload input {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .upload-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            opacity: 0.7;
+        }
+
+        .upload-text {
+            font-weight: 500;
+        }
+
+        .upload-hint {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .file-info {
+            display: none;
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-left: 4px solid var(--accent);
+        }
+
+        .file-info.show {
+            display: block;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        .code-input-container {
+            position: relative;
+        }
+
+        .code-input {
+            width: 100%;
+            min-height: 200px;
+            max-height: 400px;
+            padding: 1.5rem;
+            background: var(--surface);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            resize: vertical;
+            transition: all 0.3s ease;
+        }
+
+        .code-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+            background: var(--surface-light);
+        }
+
+        .code-input::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.7;
+        }
+
+        .code-stats {
+            position: absolute;
+            bottom: 8px;
+            right: 12px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            background: var(--background);
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .key-section {
+            margin-bottom: 2rem;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            background: var(--surface);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+            background: var(--surface-light);
+        }
+
+        .input-label {
+            position: absolute;
+            left: 1.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            pointer-events: none;
+            transition: all 0.3s ease;
+            background: var(--surface);
+            padding: 0 0.5rem;
+        }
+
+        .input-field:focus + .input-label,
+        .input-field:not(:placeholder-shown) + .input-label {
+            top: 0;
+            font-size: 0.8rem;
+            color: var(--primary);
+            background: var(--background);
+        }
+
+        .key-strength {
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .strength-bar {
+            height: 4px;
+            border-radius: 2px;
+            background: var(--border);
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .strength-fill {
+            height: 100%;
+            width: 0%;
+            transition: all 0.3s ease;
+            border-radius: 2px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text-primary);
+            border: 2px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--surface-light);
+            border-color: var(--primary);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .progress-container {
+            display: none;
+            margin-top: 1rem;
+            background: var(--surface);
+            border-radius: 8px;
+            overflow: hidden;
+            height: 8px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .status-message {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 12px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .status-success {
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .status-error {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 4rem;
+            animation: slideUp 1s ease-out 0.6s both;
+        }
+
+        .feature-card {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .container {
+                padding: 6rem 1rem 2rem;
+            }
+            
+            .obfuscator-card {
+                padding: 1.5rem;
+            }
+            
+            .actions {
+                flex-direction: column;
+            }
+            
+            .features {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">LuaShield</div>
+            <ul class="nav-links">
+                <li><a href="#obfuscator">Obfuscator</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#about">About</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="hero">
+            <h1>Advanced Lua Obfuscator</h1>
+            <p>Protect your Lua scripts with military-grade encryption and advanced obfuscation techniques. Keep your code secure from reverse engineering.</p>
+        </div>
+
+        <div class="obfuscator-card">
+            <div class="card-header">
+                <h2>Obfuscate Your Script</h2>
+                <p>Upload your Lua file or paste code directly, then set an encryption key</p>
+            </div>
+
+            <form id="obfuscatorForm">
+                <div class="input-method-tabs">
+                    <div class="tab-buttons">
+                        <button type="button" class="tab-btn active" id="fileTab">📁 Upload File</button>
+                        <button type="button" class="tab-btn" id="textTab">📝 Paste Code</button>
+                    </div>
+                </div>
+
+                <div class="input-content">
+                    <div class="input-section active" id="fileSection">
+                        <div class="section-title">📁 Upload Script File</div>
+                        <div class="file-upload" id="fileUpload">
+                            <input type="file" id="fileInput" accept=".lua,.txt" />
+                            <div class="upload-content">
+                                <div class="upload-icon">📁</div>
+                                <div class="upload-text">Click to upload or drag and drop</div>
+                                <div class="upload-hint">Supports .lua and .txt files (max 10MB)</div>
+                            </div>
+                        </div>
+                        <div class="file-info" id="fileInfo">
+                            <div id="fileName"></div>
+                            <div id="fileSize"></div>
+                        </div>
+                    </div>
+
+                    <div class="input-section" id="textSection">
+                        <div class="section-title">📝 Paste Your Lua Code</div>
+                        <div class="code-input-container">
+                            <textarea 
+                                id="codeInput" 
+                                class="code-input" 
+                                placeholder="-- Paste your Lua code here
+local function example()
+    print('Hello, World!')
+end
+
+example()"
+                                spellcheck="false"
+                            ></textarea>
+                            <div class="code-stats" id="codeStats">
+                                Lines: 0 | Characters: 0
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="key-section">
+                    <div class="section-title">🔐 Encryption Key</div>
+                    <div class="input-group">
+                        <input type="text" class="input-field" id="encryptionKey" placeholder=" " required />
+                        <label class="input-label">Enter your encryption key</label>
+                    </div>
+                    <div class="key-strength">
+                        <span id="strengthText">Key strength: </span>
+                        <div class="strength-bar">
+                            <div class="strength-fill" id="strengthFill"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button type="button" class="btn btn-secondary" id="clearBtn">
+                        Clear All
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="obfuscateBtn" disabled>
+                        <div class="loading-spinner" id="loadingSpinner"></div>
+                        Select Input & Enter Key
+                    </button>
+                </div>
+
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+
+                <div class="status-message" id="statusMessage"></div>
+            </form>
+        </div>
+
+        <div class="features" id="features">
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <div class="feature-title">Military-Grade Encryption</div>
+                <div class="feature-description">Advanced XOR encryption with custom key generation</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🛡️</div>
+                <div class="feature-title">Multi-Layer Protection</div>
+                <div class="feature-description">Multiple obfuscation layers with decoy variables</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <div class="feature-title">Lightning Fast</div>
+                <div class="feature-description">Process files instantly with optimized algorithms</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <div class="feature-title">Zero Dependencies</div>
+                <div class="feature-description">Pure Lua output with no external requirements</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class LuaObfuscator {
+            constructor() {
+                this.selectedFile = null;
+                this.currentInputMethod = 'file';
+                this.randomStrings = {};
+                this.randomTables = {};
+                
+                this.initializeElements();
+                this.generateRandomStrings();
+                this.attachEventListeners();
+                this.updateCodeStats();
+            }
+
+            initializeElements() {
+                // File elements
+                this.fileUpload = document.getElementById('fileUpload');
+                this.fileInput = document.getElementById('fileInput');
+                this.fileInfo = document.getElementById('fileInfo');
+                this.fileName = document.getElementById('fileName');
+                this.fileSize = document.getElementById('fileSize');
+                
+                // Text elements
+                this.codeInput = document.getElementById('codeInput');
+                this.codeStats = document.getElementById('codeStats');
+                
+                // Tab elements
+                this.fileTab = document.getElementById('fileTab');
+                this.textTab = document.getElementById('textTab');
+                this.fileSection = document.getElementById('fileSection');
+                this.textSection = document.getElementById('textSection');
+                
+                // Form elements
+                this.form = document.getElementById('obfuscatorForm');
+                this.encryptionKey = document.getElementById('encryptionKey');
+                this.obfuscateBtn = document.getElementById('obfuscateBtn');
+                this.clearBtn = document.getElementById('clearBtn');
+                this.loadingSpinner = document.getElementById('loadingSpinner');
+                
+                // Progress elements
+                this.progressContainer = document.getElementById('progressContainer');
+                this.progressBar = document.getElementById('progressBar');
+                this.statusMessage = document.getElementById('statusMessage');
+                
+                // Key strength elements
+                this.strengthText = document.getElementById('strengthText');
+                this.strengthFill = document.getElementById('strengthFill');
+            }
+
+            attachEventListeners() {
+                // Tab switching
+                this.fileTab.addEventListener('click', () => this.switchTab('file'));
+                this.textTab.addEventListener('click', () => this.switchTab('text'));
+                
+                // File upload events
+                this.fileUpload.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.fileInput.click();
+                });
+                
+                this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+                
+                // Drag and drop events
+                this.fileUpload.addEventListener('dragover', (e) => this.handleDragOver(e));
+                this.fileUpload.addEventListener('dragleave', (e) => this.handleDragLeave(e));
+                this.fileUpload.addEventListener('drop', (e) => this.handleDrop(e));
+
+                // Code input events
+                this.codeInput.addEventListener('input', () => {
+                    this.updateCodeStats();
+                    this.validateForm();
+                });
+
+                // Key events
+                this.encryptionKey.addEventListener('input', () => {
+                    this.checkKeyStrength();
+                    this.validateForm();
+                });
+
+                // Form events
+                this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+                this.clearBtn.addEventListener('click', () => this.clearAll());
+            }
+
+            switchTab(method) {
+                this.currentInputMethod = method;
+                
+                // Update tab buttons
+                this.fileTab.classList.toggle('active', method === 'file');
+                this.textTab.classList.toggle('active', method === 'text');
+                
+                // Update sections
+                this.fileSection.classList.toggle('active', method === 'file');
+                this.textSection.classList.toggle('active', method === 'text');
+                
+                // Clear input when switching
+                if (method === 'file') {
+                    this.codeInput.value = '';
+                    this.updateCodeStats();
+                } else {
+                    this.fileInput.value = '';
+                    this.selectedFile = null;
+                    this.fileInfo.classList.remove('show');
+                }
+                
+                this.validateForm();
+                this.hideStatus();
+            }
+
+            updateCodeStats() {
+                const text = this.codeInput.value;
+                const lines = text ? text.split('\n').length : 0;
+                const characters = text.length;
+                this.codeStats.textContent = `Lines: ${lines} | Characters: ${characters}`;
+            }
+
+            handleDragOver(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.fileUpload.classList.add('drag-over');
+            }
+
+            handleDragLeave(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.fileUpload.classList.remove('drag-over');
+            }
+
+            handleDrop(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.fileUpload.classList.remove('drag-over');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    this.processFile(files[0]);
+                }
+            }
+
+            handleFileSelect(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    this.processFile(file);
+                }
+            }
+
+            processFile(file) {
+                const validExtensions = ['lua', 'txt'];
+                const fileName = file.name.toLowerCase();
+                const fileExtension = fileName.split('.').pop();
+                const maxSize = 10 * 1024 * 1024; // 10MB
+
+                if (!validExtensions.includes(fileExtension)) {
+                    this.showStatus('❌ Please upload only .lua or .txt files', 'error');
+                    return;
+                }
+
+                if (file.size > maxSize) {
+                    this.showStatus('❌ File size must be less than 10MB', 'error');
+                    return;
+                }
+
+                this.selectedFile = file;
+                this.fileName.textContent = `📄 ${file.name}`;
+                this.fileSize.textContent = `📊 ${(file.size / 1024).toFixed(2)} KB`;
+                this.fileInfo.classList.add('show');
+                this.validateForm();
+                this.hideStatus();
+            }
+
+            checkKeyStrength() {
+                const key = this.encryptionKey.value;
+                let strength = 0;
+                let strengthText = 'Weak';
+                let color = '#ef4444';
+
+                if (key.length >= 8) strength += 25;
+                if (key.length >= 12) strength += 25;
+                if (/[A-Z]/.test(key)) strength += 15;
+                if (/[a-z]/.test(key)) strength += 15;
+                if (/[0-9]/.test(key)) strength += 10;
+                if (/[^A-Za-z0-9]/.test(key)) strength += 10;
+
+                if (strength >= 80) {
+                    strengthText = 'Very Strong';
+                    color = '#22c55e';
+                } else if (strength >= 60) {
+                    strengthText = 'Strong';
+                    color = '#10b981';
+                } else if (strength >= 40) {
+                    strengthText = 'Medium';
+                    color = '#f59e0b';
+                }
+
+                this.strengthText.textContent = `Key strength: ${strengthText}`;
+                this.strengthFill.style.width = `${strength}%`;
+                this.strengthFill.style.background = color;
+            }
+
+            validateForm() {
+                let hasInput = false;
+                let inputType = '';
+                
+                if (this.currentInputMethod === 'file') {
+                    hasInput = this.selectedFile !== null;
+                    inputType = hasInput ? '' : 'Select File';
+                } else {
+                    hasInput = this.codeInput.value.trim().length > 0;
+                    inputType = hasInput ? '' : 'Enter Code';
+                }
